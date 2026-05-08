@@ -5,57 +5,113 @@ Script em Python que lista **apenas metadata** do **AWS Systems Manager Paramete
 ## Pré-requisitos
 
 - [Python](https://www.python.org/) 3.10 ou superior
-- [uv](https://docs.astral.sh/uv/) (gestão de ambiente e dependências)
 - Credenciais AWS válidas na [cadeia padrão](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) (variáveis de ambiente, `~/.aws/credentials`, SSO, perfil, IAM Role na instância, etc.)
+- **UV** *ou* **pip** + **venv** (escolha um fluxo na secção seguinte)
 
-## Instalação
+## Instalação: UV e pip
 
-Na raiz do repositório:
+Use **um** dos fluxos abaixo.
 
-```bash
-uv sync
-```
+### 1. Criar o ambiente virtual
 
-Isso cria/atualiza o ambiente virtual (`.venv/`) e instala `boto3` e `tabulate` conforme `pyproject.toml` e `uv.lock`.
+| Ferramenta | Comando |
+|------------|---------|
+| **UV** | `uv venv` |
+| **pip** | `python3 -m venv .venv` |
+
+(Isso cria a pasta **`.venv/`** na raiz do repositório. Com UV, `uv sync` também pode criar/atualizar essa venv automaticamente.)
+
+### 2. Instalar dependências
+
+**Opção A — projeto com `pyproject.toml` + `uv.lock` (recomendado com UV)**
+
+| Ferramenta | Comando |
+|------------|---------|
+| **UV** | `uv sync` |
+| **pip** | Ative a venv (`source .venv/bin/activate` no Linux/macOS; `.venv\Scripts\activate` no Windows) e rode:<br>`pip install -r requirements.txt`<br>(o `requirements.txt` espelha as versões travadas; use sempre o arquivo versionado no repositório) |
+
+**Opção B — apenas `requirements.txt`**
+
+| Ferramenta | Comando |
+|------------|---------|
+| **UV** | `uv venv` *(se ainda não existir `.venv/`)*<br>`uv pip sync requirements.txt`<br>*(alinha o ambiente ao arquivo; respeita hashes)* |
+| **UV** *(instalar sem “sync”, não remove pacotes extras)* | `uv pip install -r requirements.txt` |
+| **pip** *(venv **ativa**)* | `pip install -r requirements.txt` |
+
+### 3. Executar o script
+
+| Ferramenta | Comando base |
+|------------|----------------|
+| **UV** | `uv run python scripts/list_ssm_and_secrets.py …argumentos…` |
+| **pip** | Com venv ativa: `python scripts/list_ssm_and_secrets.py …argumentos…`<br>Ou sem ativar: `.venv/bin/python scripts/list_ssm_and_secrets.py …argumentos…` (Linux/macOS; no Windows use `.venv\Scripts\python.exe`) |
+
+Nos exemplos abaixo, **`COMANDO`** significa um dos dois:
+
+- UV: `uv run python`
+- pip: `python` *(com venv ativa)* ou `.venv/bin/python`
+
+---
+
+### Fluxos extras (só UV)
+
+| Objetivo | Comando |
+|----------|---------|
+| Fixar versão do Python no projeto | `uv python pin 3.12` |
+| Nova dependência no projeto | `uv add nome-do-pacote` *(atualiza `pyproject.toml` e `uv.lock`)* |
+| Copiar pacotes do `requirements.txt` para o `pyproject.toml` | `uv add -r requirements.txt` |
+
+Após `uv add`, faça commit de `pyproject.toml` e `uv.lock` e regenere o `requirements.txt` se precisar mantê-lo para pip (secção **Dependências e lockfile**).
 
 ## Uso
 
 ### Ajuda
 
 ```bash
+COMANDO scripts/list_ssm_and_secrets.py --help
+```
+
+Exemplo com UV:
+
+```bash
 uv run python scripts/list_ssm_and_secrets.py --help
+```
+
+Exemplo com pip (venv ativa):
+
+```bash
+python scripts/list_ssm_and_secrets.py --help
 ```
 
 ### Exemplos
 
-Conta e região padrão da sua configuração AWS:
+Conta e região padrão da configuração AWS:
 
 ```bash
-uv run python scripts/list_ssm_and_secrets.py
+COMANDO scripts/list_ssm_and_secrets.py
 ```
 
 Perfil e região explícitos:
 
 ```bash
-uv run python scripts/list_ssm_and_secrets.py --profile minha-conta --region sa-east-1
+COMANDO scripts/list_ssm_and_secrets.py --profile minha-conta --region sa-east-1
 ```
 
-Somente Secrets Manager, saída TSV (útil para `grep`, `awk`, planilhas):
+Somente Secrets Manager, saída TSV:
 
 ```bash
-uv run python scripts/list_ssm_and_secrets.py --what secrets --output tsv
+COMANDO scripts/list_ssm_and_secrets.py --what secrets --output tsv
 ```
 
-Somente Parameter Store com prefixo no nome do parâmetro:
+Somente Parameter Store com prefixo no nome:
 
 ```bash
-uv run python scripts/list_ssm_and_secrets.py --what ssm --ssm-prefix /meu-app/
+COMANDO scripts/list_ssm_and_secrets.py --what ssm --ssm-prefix /meu-app/
 ```
 
-Redirecionar só os dados (sem os títulos das seções), preservando mensagens no terminal:
+Redirecionar só os dados (stdout), mantendo títulos e erros no terminal:
 
 ```bash
-uv run python scripts/list_ssm_and_secrets.py --what secrets --output tsv > secrets.tsv
+COMANDO scripts/list_ssm_and_secrets.py --what secrets --output tsv > secrets.tsv
 ```
 
 ## Opções da CLI
@@ -88,10 +144,13 @@ O script chama apenas `DescribeParameters` e `ListSecrets`. **Não** usa `GetPar
 
 ## Dependências e lockfile
 
-Dependências estão em `pyproject.toml`. O arquivo `uv.lock` fixa versões para instalações reproduzíveis.
+- **`pyproject.toml`**: dependências declaradas pelo projeto.
+- **`uv.lock`**: versões travadas para uso com **`uv sync`** (instalação reproduzível com UV).
+- **`requirements.txt`**: export gerado a partir do lock/projeto, para **`pip install -r`** ou **`uv pip sync`**.
 
-Para gerar um `requirements.txt` (integrações que só aceitam pip):
+Para **regenerar** o `requirements.txt` depois de alterar dependências no pyproject (requer UV):
 
 ```bash
-uv export --format requirements-txt -o requirements.txt
+uv lock
+uv export --format requirements-txt -o requirements.txt --no-dev
 ```
