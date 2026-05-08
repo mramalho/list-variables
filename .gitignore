@@ -1,0 +1,31 @@
+# Ambiente virtual (uv sync / uv venv)
+.venv/
+
+# Bytecode / caches Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribuição / empacotamento
+build/
+dist/
+*.egg
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Ferramentas / testes
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDEs e OS
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
